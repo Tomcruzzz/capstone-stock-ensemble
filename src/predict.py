@@ -63,6 +63,10 @@ def main():
 
     row = feature_df.loc[date]
     feature_cols = metadata["feature_cols"]["full"]
+    # Check for missing feature columns
+    missing_cols = [col for col in feature_cols if col not in row.index]
+    if missing_cols:
+        raise ValueError(f"Missing feature columns: {missing_cols}")
     X = row[feature_cols].to_numpy().reshape(1, -1)
 
     models = joblib.load(artifacts / "models.joblib")

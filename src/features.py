@@ -8,6 +8,8 @@ from .utils import safe_log, to_date_index
 def _rolling_zscore(series, window):
     mean = series.rolling(window).mean()
     std = series.rolling(window).std()
+    # Avoid division by zero by adding small epsilon
+    std = std.replace(0, np.nan)
     return (series - mean) / std
 
 
@@ -92,7 +94,9 @@ def make_feature_frame(target_df, market_ret, sector_ret, breadth, min_history_d
     features.update(_add_return_lags(base, "return", "own_", max_lag=5))
     features.update(_add_rolling_stats(base, "return", "own_", [5, 20, 63]))
 
-    hlc = (base["High"] - base["Low"]) / base["Close"]
+    # Avoid division by zero (though Close should never be 0 for valid stock data)
+    close = base["Close"].replace(0, np.nan)
+    hlc = (base["High"] - base["Low"]) / close
     features["own_hlc"] = hlc
     features["own_hlc_z20"] = _rolling_zscore(hlc, 20)
     features["own_hlc_z63"] = _rolling_zscore(hlc, 63)
@@ -100,6 +104,8 @@ def make_feature_frame(target_df, market_ret, sector_ret, breadth, min_history_d
     adj = base["Adj Close"]
     for w in [5, 20, 63]:
         sma = adj.rolling(w).mean()
+        # Avoid division by zero (though sma should never be 0 for valid stock data)
+        sma = sma.replace(0, np.nan)
         features[f"own_sma_gap_{w}"] = (adj / sma) - 1.0
 
     log_vol = safe_log(base["Volume"])

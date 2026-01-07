@@ -5,6 +5,9 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import ElasticNet
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from .config import (
     DEFAULT_MARKET,
@@ -21,6 +24,7 @@ from .config import (
 from .features import feature_groups, make_feature_frame
 from .models import build_base_models, build_meta_model
 from .sector import compute_breadth, get_sector_series
+from .stack import make_meta_matrix, oof_predictions
 from .utils import compute_returns, load_ticker_csv, mae, rmse, save_json, sign_accuracy, to_date_index
 
 
@@ -119,8 +123,6 @@ def main():
     base_models = build_base_models()
 
     # OOF predictions on validation
-    from .stack import oof_predictions, make_meta_matrix
-
     oof = oof_predictions(base_models, X_train, y_train, X_val, y_val, n_splits=4)
     oof["target"] = y_val
 
@@ -153,10 +155,6 @@ def main():
     metrics_df.to_csv(output_dir / "metrics.csv", index=False)
 
     # Ablations (ElasticNet)
-    from sklearn.pipeline import Pipeline
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.linear_model import ElasticNet
-
     ablations = []
     for feat_name, cols in [
         ("own_only", own_cols),
